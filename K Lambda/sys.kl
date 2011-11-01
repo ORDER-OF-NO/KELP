@@ -1,0 +1,584 @@
+
+"                                                   The License
+ 
+ The user is free to produce commercial applications with the software, to distribute these applications in source or binary  form, and to charge monies for them as he sees fit and in concordance with the laws of the land subject to the following  license.
+ 
+ 1. The license applies to all the software and all derived software and must appear on such.
+ 2. It is illegal to distribute the software without this license attached to it and use of the software implies agreement 
+    with the license as such. It is illegal for anyone who is not the copyright holder to tamper with or change the license.
+ 3. Neither the names of Lambda Associates or the copyright holder may be used to endorse or promote products built using
+     the software without specific prior written permission from the copyright holder.
+ 4. That possession of this license does not confer on the copyright holder any special contractual obligation towards the    user. That in no event shall the copyright holder be liable for any direct, indirect, incidental, special, exemplary or   consequential damages (including but not limited to procurement of substitute goods or services, loss of use, data, or    profits; or business interruption), however caused and on any theory of liability, whether in contract, strict liability   or tort (including negligence) arising in any way out of the use of the software, even if advised of the possibility of   such damage. 
+5. It is permitted for the user to change the software, for the purpose of improving performance, correcting an error, or    porting to a new platform, and distribute the modified version of Shen (hereafter the modified version) provided the     resulting program conforms in all respects to the Shen standard and is issued under that title. The user must make it clear   with his distribution that he/she is the author of the changes and what these changes are and why. 
+6. Derived versions of this software in whatever form are subject to the same restrictions. In particular it is not          permitted to make derived copies of this software which do not conform to the Shen standard or appear under a different title.
+7. It is permitted to distribute versions of Shen which incorporate libraries, graphics or other facilities which are not    part of the Shen standard.
+
+For an explication of this license see http://www.lambdassociates.org/News/june11/license.htm which explains this license in full."
+
+(defun eval (V2202)
+ (let Macroexpand (shen-walk (function macroexpand) V2202)
+  (if (shen-packaged? Macroexpand)
+   (map (function eval-without-macros) (shen-package-contents Macroexpand))
+   (eval-without-macros Macroexpand))))
+
+(defun shen-packaged? (V2209)
+ (cond
+  ((and (cons? V2209)
+    (and (= package (hd V2209))
+     (and (cons? (tl V2209)) (cons? (tl (tl V2209))))))
+   true)
+  (true false)))
+
+(defun shen-package-contents (V2212)
+ (cond
+  ((and (cons? V2212)
+    (and (= package (hd V2212))
+     (and (cons? (tl V2212))
+      (and (= null (hd (tl V2212))) (cons? (tl (tl V2212)))))))
+   (tl (tl (tl V2212))))
+  ((and (cons? V2212)
+    (and (= package (hd V2212))
+     (and (cons? (tl V2212)) (cons? (tl (tl V2212))))))
+   (shen-packageh (hd (tl V2212)) (hd (tl (tl V2212))) Code))
+  (true (shen-sys-error shen-package-contents))))
+
+(defun shen-walk (V2213 V2214)
+ (cond ((cons? V2214) (V2213 (map (lambda Z (shen-walk V2213 Z)) V2214)))
+  (true (V2213 V2214))))
+
+(defun compile (V2215 V2216 V2217)
+ (let O (V2215 (@p V2216 ()))
+  (if (or (= (fail) O) (not (empty? (fst O)))) (shen-compile-error O V2217)
+   (snd O))))
+
+(defun shen-compile-error (V2230 V2231)
+ (cond ((= () V2231) (fail))
+  ((and (tuple? V2230) (cons? (fst V2230))) (V2231 (fst V2230)))
+  (true (interror "syntax error~%" ()))))
+
+(defun <e> (V2236)
+ (cond ((tuple? V2236) (@p (fst V2236) ())) (true (shen-sys-error <e>))))
+
+(defun fail-if (V2237 V2238) (if (V2237 V2238) (fail) V2238))
+
+(defun @s (V2239 V2240) (cn V2239 V2240))
+
+(defun tc? (V2245) (value shen-*tc*))
+
+(defun ps (V2246)
+ (trap-error (get V2246 shen-source (value shen-*property-vector*))
+  (lambda E (interror "~A not found.~%" (@p V2246 ())))))
+
+(defun explode (V2247)
+ (if (string? V2247) (shen-explode-string V2247)
+  (explode (intmake-string "~A" (@p V2247 ())))))
+
+(defun shen-explode-string (V2248)
+ (cond ((= "" V2248) ())
+  (true
+   (let S (pos V2248 0)
+    (let Ss (tlstr V2248)
+     (if (= Ss shen-eos) () (cons S (shen-explode-string Ss))))))))
+
+(defun stinput (V2253) (value *stinput*))
+
+(defun shen-+vector? (V2254)
+ (and (absvector? V2254) (> (<-address V2254 0) 0)))
+
+(defun vector (V2255)
+ (let Vector (absvector (+ V2255 1)) (address-> Vector 0 V2255)))
+
+(defun shen-fillvector (V2258 V2259 V2260 V2261)
+ (cond ((= V2260 V2259) V2258)
+  (true
+   (shen-fillvector (address-> V2258 V2259 V2261) (+ 1 V2259) V2260 V2261))))
+
+(defun vector? (V2263)
+ (and (absvector? V2263)
+  (trap-error (>= (<-address V2263 0) 0) (lambda E false))))
+
+(defun vector-> (V2264 V2265 V2266)
+ (if (= V2265 0) (interror "cannot access 0th element of a vector~%" ())
+  (address-> V2264 V2265 V2266)))
+
+(defun <-vector (V2267 V2268)
+ (if (= V2268 0) (interror "cannot access 0th element of a vector~%" ())
+  (let VectorElement (<-address V2267 V2268)
+   (if (= VectorElement (fail)) (interror "vector element not found~%" ())
+    VectorElement))))
+
+(defun shen-posint? (V2269) (and (integer? V2269) (>= V2269 0)))
+
+(defun limit (V2270) (<-address V2270 0))
+
+(defun symbol? (V2271)
+ (cond ((or (boolean? V2271) (number? V2271)) false)
+  (true
+   (trap-error
+    (let String (str V2271)
+     (let Unit (pos String 0)
+      (element? Unit
+       (cons "A"
+        (cons "B"
+         (cons "C"
+          (cons "D"
+           (cons "E"
+            (cons "F"
+             (cons "G"
+              (cons "H"
+               (cons "I"
+                (cons "J"
+                 (cons "K"
+                  (cons "L"
+                   (cons "M"
+                    (cons "N"
+                     (cons "O"
+                      (cons "P"
+                       (cons "Q"
+                        (cons "R"
+                         (cons "S"
+                          (cons "T"
+                           (cons "U"
+                            (cons "V"
+                             (cons "W"
+                              (cons "X"
+                               (cons "Y"
+                                (cons "Z"
+                                 (cons "a"
+                                  (cons "b"
+                                   (cons "c"
+                                    (cons "d"
+                                     (cons "e"
+                                      (cons "f"
+                                       (cons "g"
+                                        (cons "h"
+                                         (cons "i"
+                                          (cons "j"
+                                           (cons "k"
+                                            (cons "l"
+                                             (cons "m"
+                                              (cons "n"
+                                               (cons "o"
+                                                (cons "p"
+                                                 (cons "q"
+                                                  (cons "r"
+                                                   (cons "s"
+                                                    (cons "t"
+                                                     (cons "u"
+                                                      (cons "v"
+                                                       (cons "w"
+                                                        (cons "x"
+                                                         (cons "y"
+                                                          (cons "z"
+                                                           (cons "="
+                                                            (cons "*"
+                                                             (cons "/"
+                                                              (cons "+"
+                                                               (cons "-"
+                                                                (cons "_"
+                                                                 (cons "?"
+                                                                  (cons "$"
+                                                                   (cons "!"
+                                                                    (cons "@"
+                                                                     (cons "~"
+                                                                      (cons ">"
+                                                                       (cons
+                                                                        "<"
+                                                                        (cons
+                                                                         "&"
+                                                                         (cons
+                                                                          "%"
+                                                                          (cons
+                                                                           "{"
+                                                                           (cons
+                                                                            "}"
+                                                                            (cons
+                                                                             ":"
+                                                                             (cons
+                                                                              ";"
+                                                                              ()))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    (lambda E false)))))
+
+(defun variable? (V2272)
+ (trap-error
+  (let String (str V2272)
+   (let Unit (pos String 0)
+    (element? Unit
+     (cons "A"
+      (cons "B"
+       (cons "C"
+        (cons "D"
+         (cons "E"
+          (cons "F"
+           (cons "G"
+            (cons "H"
+             (cons "I"
+              (cons "J"
+               (cons "K"
+                (cons "L"
+                 (cons "M"
+                  (cons "N"
+                   (cons "O"
+                    (cons "P"
+                     (cons "Q"
+                      (cons "R"
+                       (cons "S"
+                        (cons "T"
+                         (cons "U"
+                          (cons "V"
+                           (cons "W"
+                            (cons "X"
+                             (cons "Y"
+                              (cons "Z" ())))))))))))))))))))))))))))))
+  (lambda E false)))
+
+(defun gensym (V2273)
+ (concat V2273 (set shen-*gensym* (+ 1 (value shen-*gensym*)))))
+
+(defun concat (V2274 V2275) (intern (cn (str V2274) (str V2275))))
+
+(defun @p (V2276 V2277)
+ (let Vector (absvector 3)
+  (let Tag (address-> Vector 0 shen-tuple)
+   (let Fst (address-> Vector 1 V2276)
+    (let Snd (address-> Vector 2 V2277) Vector)))))
+
+(defun fst (V2278) (<-address V2278 1))
+
+(defun snd (V2279) (<-address V2279 2))
+
+(defun tuple? (V2280)
+ (trap-error (and (shen-absarray? V2280) (= shen-tuple (<-address V2280 0)))
+  (lambda E false)))
+
+(defun append (V2281 V2282)
+ (cond ((= () V2281) V2282)
+  ((cons? V2281) (cons (hd V2281) (append (tl V2281) V2282)))
+  (true (shen-sys-error append))))
+
+(defun @v (V2283 V2284)
+ (let Limit (limit V2284)
+  (let NewVector (vector (+ Limit 1))
+   (let X+NewVector (vector-> NewVector 1 V2283)
+    (if (= Limit 0) X+NewVector
+     (shen-@v-help V2284 1 Limit X+NewVector))))))
+
+(defun shen-@v-help (V2285 V2286 V2287 V2288)
+ (cond ((= V2287 V2286) (shen-copyfromvector V2285 V2288 V2287 (+ V2287 1)))
+  (true
+   (shen-@v-help V2285 (+ V2286 1) V2287
+    (shen-copyfromvector V2285 V2288 V2286 (+ V2286 1))))))
+
+(defun shen-copyfromvector (V2290 V2291 V2292 V2293)
+ (vector-> V2291 V2293 (<-vector V2290 V2292)))
+
+(defun hdv (V2294)
+ (trap-error (<-vector V2294 1)
+  (lambda E
+   (interror "hdv needs a non-empty vector as an argument; not ~S~%"
+    (@p V2294 ())))))
+
+(defun tlv (V2295)
+ (let Limit (limit V2295)
+  (if (= Limit 0)
+   (interror "cannot take the tail of the empty vector~%" ())
+   (if (= Limit 1) (vector 0)
+    (let NewVector (vector (- Limit 1))
+     (shen-tlv-help V2295 2 Limit (vector (- Limit 1))))))))
+
+(defun shen-tlv-help (V2296 V2297 V2298 V2299)
+ (cond ((= V2298 V2297) (shen-copyfromvector V2296 V2299 V2298 (- V2298 1)))
+  (true
+   (shen-tlv-help V2296 (+ V2297 1) V2298
+    (shen-copyfromvector V2296 V2299 V2297 (- V2297 1))))))
+
+(defun assoc (V2309 V2310)
+ (cond ((= () V2310) ())
+  ((and (cons? V2310) (and (cons? (hd V2310)) (= (hd (hd V2310)) V2309)))
+   (hd V2310))
+  ((cons? V2310) (assoc V2309 (tl V2310))) (true (shen-sys-error assoc))))
+
+(defun boolean? (V2316)
+ (cond ((= true V2316) true) ((= false V2316) true) (true false)))
+
+(defun nl (V2317)
+ (cond ((= 0 V2317) 0) (true (do (intoutput "~%" ()) (nl (- V2317 1))))))
+
+(defun difference (V2320 V2321)
+ (cond ((= () V2320) ())
+  ((cons? V2320)
+   (if (element? (hd V2320) V2321) (difference (tl V2320) V2321)
+    (cons (hd V2320) (difference (tl V2320) V2321))))
+  (true (shen-sys-error difference))))
+
+(defun do (V2322 V2323) V2323)
+
+(defun element? (V2332 V2333)
+ (cond ((= () V2333) false)
+  ((and (cons? V2333) (= (hd V2333) V2332)) true)
+  ((cons? V2333) (element? V2332 (tl V2333)))
+  (true (shen-sys-error element?))))
+
+(defun empty? (V2339) (cond ((= () V2339) true) (true false)))
+
+(defun fix (V2340 V2341) (shen-fix-help V2340 V2341 (V2340 V2341)))
+
+(defun shen-fix-help (V2348 V2349 V2350)
+ (cond ((= V2350 V2349) V2350)
+  (true (shen-fix-help V2348 V2350 (V2348 V2350)))))
+
+(defun put (V2352 V2353 V2354 V2355)
+ (let N (hash V2352 (limit V2355))
+  (let Entry (trap-error (<-vector V2355 N) (lambda E ()))
+   (let Change
+    (vector-> V2355 N (shen-change-pointer-value V2352 V2353 V2354 Entry))
+    V2354))))
+
+(defun shen-change-pointer-value (V2358 V2359 V2360 V2361)
+ (cond ((= () V2361) (cons (cons (cons V2358 (cons V2359 ())) V2360) ()))
+  ((and (cons? V2361)
+    (and (cons? (hd V2361))
+     (and (cons? (hd (hd V2361)))
+      (and (cons? (tl (hd (hd V2361))))
+       (and (= () (tl (tl (hd (hd V2361)))))
+        (and (= (hd (tl (hd (hd V2361)))) V2359)
+         (= (hd (hd (hd V2361))) V2358)))))))
+   (cons (cons (hd (hd V2361)) V2360) (tl V2361)))
+  ((cons? V2361)
+   (cons (hd V2361) (shen-change-pointer-value V2358 V2359 V2360 (tl V2361))))
+  (true (shen-sys-error shen-change-pointer-value))))
+
+(defun get (V2364 V2365 V2366)
+ (let N (hash V2364 (limit V2366))
+  (let Entry
+   (trap-error (<-vector V2366 N)
+    (lambda E (interror "pointer not found~%" ())))
+   (let Result (assoc (cons V2364 (cons V2365 ())) Entry)
+    (if (empty? Result) (interror "value not found~%" ()) (tl Result))))))
+
+(defun hash (V2367 V2368)
+ (let Hash
+  (mod (sum (map (function shen-unit-string->byte) (explode V2367))) V2368)
+  (if (= 0 Hash) 1 Hash)))
+
+(defun shen-unit-string->byte (V2373)
+ (cond ((= "e" V2373) 101) ((= "E" V2373) 69) ((= "t" V2373) 116)
+  ((= "T" V2373) 84) ((= "a" V2373) 97) ((= "A" V2373) 65)
+  ((= "o" V2373) 111) ((= "O" V2373) 79) ((= "n" V2373) 110)
+  ((= "N" V2373) 78) ((= "i" V2373) 105) ((= "I" V2373) 73)
+  ((= "r" V2373) 114) ((= "R" V2373) 82) ((= "s" V2373) 115)
+  ((= "S" V2373) 83) ((= "h" V2373) 104) ((= "H" V2373) 72)
+  ((= "d" V2373) 100) ((= "D" V2373) 68) ((= "+" V2373) 43)
+  ((= "-" V2373) 45) ((= "0" V2373) 48) ((= "1" V2373) 49)
+  ((= "2" V2373) 50) ((= "3" V2373) 51) ((= "4" V2373) 52)
+  ((= "5" V2373) 53) ((= "6" V2373) 54) ((= "7" V2373) 55)
+  ((= "8" V2373) 56) ((= "9" V2373) 57) ((= "l" V2373) 108)
+  ((= "L" V2373) 76) ((= "f" V2373) 102) ((= "F" V2373) 70)
+  ((= "m" V2373) 109) ((= "M" V2373) 77) ((= "c" V2373) 99)
+  ((= "C" V2373) 67) ((= "(" V2373) 40) ((= ")" V2373) 41)
+  ((= "u" V2373) 117) ((= "U" V2373) 85) ((= "g" V2373) 103)
+  ((= "G" V2373) 71) ((= "y" V2373) 121) ((= "Y" V2373) 89)
+  ((= "p" V2373) 112) ((= "P" V2373) 80) ((= "w" V2373) 119)
+  ((= "W" V2373) 87) ((= "b" V2373) 98) ((= "B" V2373) 66)
+  ((= "v" V2373) 118) ((= "V" V2373) 86) ((= "k" V2373) 107)
+  ((= "K" V2373) 75) ((= "x" V2373) 120) ((= "X" V2373) 88)
+  ((= "j" V2373) 106) ((= "J" V2373) 74) ((= "q" V2373) 113)
+  ((= "Q" V2373) 81) ((= "z" V2373) 122) ((= "Z" V2373) 90)
+  ((= "[" V2373) 91) ((= "]" V2373) 93) ((= "{" V2373) 123)
+  ((= "}" V2373) 125) ((= "=" V2373) 61) ((= "_" V2373) 95)
+  ((= "!" V2373) 33) ((= "?" V2373) 63) ((= "#" V2373) 35)
+  ((= V2373 (shen-newline-string)) 13) ((= "$" V2373) 36)
+  ((= "&" V2373) 38) ((= "*" V2373) 42) ((= "/" V2373) 47)
+  ((= "," V2373) 44) ((= "." V2373) 46) ((= ":" V2373) 58)
+  ((= ";" V2373) 59) ((= "<" V2373) 60) ((= ">" V2373) 62)
+  ((= "@" V2373) 64) ((= "%" V2373) 37) ((= "'" V2373) 39)
+  ((= "`" V2373) 96) ((= "|" V2373) 124) ((= "~" V2373) 126)
+  ((= "\\" V2373) 92) ((= " " V2373) 32)
+  (true (interror "Cannot map unit string to byte~%" ()))))
+
+(defun mod (V2374 V2375)
+ (shen-modh V2374 (shen-multiples V2374 (cons V2375 ()))))
+
+(defun shen-multiples (V2376 V2377)
+ (cond ((and (cons? V2377) (> (hd V2377) V2376)) (tl V2377))
+  ((cons? V2377) (shen-multiples V2376 (cons (* 2 (hd V2377)) V2377)))
+  (true (shen-sys-error shen-multiples))))
+
+(defun shen-modh (V2380 V2381)
+ (cond ((= 0 V2380) 0) ((= () V2381) V2380)
+  ((and (cons? V2381) (> (hd V2381) V2380))
+   (if (empty? (tl V2381)) V2380 (shen-modh V2380 (tl V2381))))
+  ((cons? V2381) (shen-modh (- V2380 (hd V2381)) V2381))
+  (true (shen-sys-error shen-modh))))
+
+(defun sum (V2382)
+ (cond ((= () V2382) 0) ((cons? V2382) (+ (hd V2382) (sum (tl V2382))))
+  (true (shen-sys-error sum))))
+
+(defun head (V2389)
+ (cond ((cons? V2389) (hd V2389))
+  (true (interror "head expects a non-empty list" ()))))
+
+(defun tail (V2396)
+ (cond ((cons? V2396) (tl V2396))
+  (true (interror "tail expects a non-empty list" ()))))
+
+(defun hdstr (V2397) (pos V2397 0))
+
+(defun intersection (V2400 V2401)
+ (cond ((= () V2400) ())
+  ((cons? V2400)
+   (if (element? (hd V2400) V2401)
+    (cons (hd V2400) (intersection (tl V2400) V2401))
+    (intersection (tl V2400) V2401)))
+  (true (shen-sys-error intersection))))
+
+(defun reverse (V2402) (shen-reverse_help V2402 ()))
+
+(defun shen-reverse_help (V2403 V2404)
+ (cond ((= () V2403) V2404)
+  ((cons? V2403) (shen-reverse_help (tl V2403) (cons (hd V2403) V2404)))
+  (true (shen-sys-error shen-reverse_help))))
+
+(defun union (V2405 V2406)
+ (cond ((= () V2405) V2406)
+  ((cons? V2405)
+   (if (element? (hd V2405) V2406) (union (tl V2405) V2406)
+    (cons (hd V2405) (union (tl V2405) V2406))))
+  (true (shen-sys-error union))))
+
+(defun y-or-n? (V2407)
+ (let Message (intoutput "~A (y/n) " (@p V2407 ()))
+  (let Input (intmake-string "~A" (@p (input) ()))
+   (if (= "y" Input) true
+    (if (= "n" Input) false
+     (do (intoutput "please answer y or n~%" ()) (y-or-n? V2407)))))))
+
+(defun not (V2408) (if V2408 false true))
+
+(defun subst (V2417 V2418 V2419)
+ (cond ((= V2419 V2418) V2417)
+  ((cons? V2419)
+   (cons (subst V2417 V2418 (hd V2419)) (subst V2417 V2418 (tl V2419))))
+  (true V2419)))
+
+(defun cd (V2421)
+ (set *home-directory*
+  (if (= V2421 "") "" (intmake-string "~A/" (@p V2421 ())))))
+
+(defun map (V2424 V2425)
+ (cond ((= () V2425) ())
+  ((cons? V2425) (cons (V2424 (hd V2425)) (map V2424 (tl V2425))))
+  (true (shen-sys-error map))))
+
+(defun length (V2426) (shen-length-h V2426 0))
+
+(defun shen-length-h (V2427 V2428)
+ (cond ((= () V2427) V2428) (true (shen-length-h (tl V2427) (+ V2428 1)))))
+
+(defun occurrences (V2437 V2438)
+ (cond ((= V2438 V2437) 1)
+  ((cons? V2438)
+   (+ (occurrences V2437 (hd V2438)) (occurrences V2437 (tl V2438))))
+  (true 0)))
+
+(defun nth (V2446 V2447)
+ (cond ((and (= 1 V2446) (cons? V2447)) (hd V2447))
+  ((cons? V2447) (nth (- V2446 1) (tl V2447))) (true (shen-sys-error nth))))
+
+(defun integer? (V2448) (and (number? V2448) (= (round V2448) V2448)))
+
+(defun mapcan (V2451 V2452)
+ (cond ((= () V2452) ())
+  ((cons? V2452) (append (V2451 (hd V2452)) (mapcan V2451 (tl V2452))))
+  (true (shen-sys-error mapcan))))
+
+(defun read-file-as-bytelist (V2453)
+ (let Stream (open file V2453 in)
+  (let Byte (read-byte Stream)
+   (let Bytes (shen-read-file-as-bytelist-help Stream Byte ())
+    (let Close (close Stream) (reverse Bytes))))))
+
+(defun shen-read-file-as-bytelist-help (V2454 V2455 V2456)
+ (cond ((= -1 V2455) V2456)
+  (true
+   (shen-read-file-as-bytelist-help V2454 (read-byte V2454)
+    (cons V2455 V2456)))))
+
+(defun read-file-as-string (V2457)
+ (let Stream (open file V2457 in) (shen-rfas-h Stream (read-byte Stream) "")))
+
+(defun shen-rfas-h (V2458 V2459 V2460)
+ (cond ((= -1 V2459) (do (close V2458) V2460))
+  (true
+   (shen-rfas-h V2458 (read-byte V2458) (cn V2460 (byte->string V2459))))))
+
+(defun round (V2461)
+ (let R1 (floor V2461) (let R2 (floor (+ V2461 0.5)) (if (> R2 R1) R2 R1))))
+
+(defun floor (V2462) (shen-floor-loop V2462 0 1000000))
+
+(defun shen-floor-loop (V2463 V2464 V2465)
+ (let Sum (+ V2464 V2465)
+  (if (> Sum V2463)
+   (if (= V2465 1) V2464 (shen-floor-loop V2463 V2464 (/ V2465 10)))
+   (shen-floor-loop V2463 Sum V2465))))
+
+(defun == (V2474 V2475) (cond ((= V2475 V2474) true) (true false)))
+
+(defun abort () (simple-error ""))
+
+(defun read () (hd (lineread)))
+
+(defun input () (eval (read)))
+
+(defun input+ (V2481 V2482)
+ (let Input (read)
+  (let Check (shen-typecheck Input V2482)
+   (if (= false Check)
+    (do (intoutput "input is not of type ~S: please re-enter " (@p V2482 ()))
+     (input+ : V2482))
+    (eval Input)))))
+
+(defun sqrt (V2483)
+ (fix (lambda M (shen-specialised_run_newtons_method V2483 M)) (/ V2483 2.0)))
+
+(defun shen-specialised_run_newtons_method (V2484 V2485)
+ (shen-round_to_6_places (average V2485 (/ V2484 V2485))))
+
+(defun average (V2486 V2487) (/ (+ V2486 V2487) 2.0))
+
+(defun shen-round_to_6_places (V2488)
+ (/ (round (* 1000000.0 V2488)) 1000000.0))
+
+(defun bound? (V2489)
+ (and (symbol? V2489)
+  (let Val (trap-error (value V2489) (lambda E shen-this-symbol-is-unbound))
+   (if (= Val shen-this-symbol-is-unbound) false true))))
+
+(defun random (V2490)
+ (let Time (get-time run)
+  (let Seed (* 100 Time)
+   (let Wait (shen-delay Time (get-time run))
+    (let Floor (floor Seed)
+     (let Remainder (- Seed Floor) (round (* V2490 Remainder))))))))
+
+(defun shen-delay (V2499 V2500)
+ (cond ((= V2500 V2499) (shen-delay V2500 (get-time run)))
+  (true shen-skip)))
+
+(defun shen-string->bytes (V2502)
+ (cond ((= "" V2502) ())
+  (true
+   (cons (shen-unit-string->byte (pos V2502 0))
+    (shen-string->bytes (tlstr V2502))))))
+
+(defun maxinferences (V2503) (set shen-*maxinferences* V2503))
+
+(defun inferences (V2508) (value shen-*infs*))
+
+(defun shen-hush (V2513)
+ (cond ((= + V2513) (set shen-*hush* shen-hushed))
+  ((= - V2513) (set shen-*hush* shen-unhushed))
+  (true (interror "'hush' expects a + or a -~%" ()))))
+

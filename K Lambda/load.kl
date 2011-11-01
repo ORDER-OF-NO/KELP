@@ -1,0 +1,117 @@
+
+"                                                   The License
+ 
+ The user is free to produce commercial applications with the software, to distribute these applications in source or binary  form, and to charge monies for them as he sees fit and in concordance with the laws of the land subject to the following  license.
+ 
+ 1. The license applies to all the software and all derived software and must appear on such.
+ 2. It is illegal to distribute the software without this license attached to it and use of the software implies agreement 
+    with the license as such. It is illegal for anyone who is not the copyright holder to tamper with or change the license.
+ 3. Neither the names of Lambda Associates or the copyright holder may be used to endorse or promote products built using
+     the software without specific prior written permission from the copyright holder.
+ 4. That possession of this license does not confer on the copyright holder any special contractual obligation towards the    user. That in no event shall the copyright holder be liable for any direct, indirect, incidental, special, exemplary or   consequential damages (including but not limited to procurement of substitute goods or services, loss of use, data, or    profits; or business interruption), however caused and on any theory of liability, whether in contract, strict liability   or tort (including negligence) arising in any way out of the use of the software, even if advised of the possibility of   such damage. 
+5. It is permitted for the user to change the software, for the purpose of improving performance, correcting an error, or    porting to a new platform, and distribute the modified version of Shen (hereafter the modified version) provided the     resulting program conforms in all respects to the Shen standard and is issued under that title. The user must make it clear   with his distribution that he/she is the author of the changes and what these changes are and why. 
+6. Derived versions of this software in whatever form are subject to the same restrictions. In particular it is not          permitted to make derived copies of this software which do not conform to the Shen standard or appear under a different title.
+7. It is permitted to distribute versions of Shen which incorporate libraries, graphics or other facilities which are not    part of the Shen standard.
+
+For an explication of this license see http://www.lambdassociates.org/News/june11/license.htm which explains this license in full."
+
+(defun load (V3158)
+ (let Load
+  (let Start (get-time run)
+   (let Result (shen-load-help (value shen-*tc*) (read-file V3158))
+    (let Finish (get-time run)
+     (let Time (- Finish Start)
+      (let Message (intoutput "~%run time: ~A secs~%" (@p Time ()))
+       Result)))))
+  (let Infs
+   (if (value shen-*tc*)
+    (intoutput "~%typechecked in ~A inferences~%" (@p (inferences _) ()))
+    shen-skip)
+   loaded)))
+
+(defun shen-load-help (V3163 V3164)
+ (cond
+  ((= false V3163)
+   (map (lambda X (intoutput "~S~%" (@p (eval-without-macros X) ()))) V3164))
+  (true
+   (let RemoveSynonyms (mapcan (function shen-remove-synonyms) V3164)
+    (let Table (mapcan (function shen-typetable) RemoveSynonyms)
+     (let Assume (map (function shen-assumetype) Table)
+      (trap-error (map (function shen-typecheck-and-load) RemoveSynonyms)
+       (lambda E (shen-unwind-types E Table)))))))))
+
+(defun shen-remove-synonyms (V3165)
+ (cond
+  ((and (cons? V3165) (= shen-synonyms-help (hd V3165)))
+   (do (eval V3165) ()))
+  (true (cons V3165 ()))))
+
+(defun shen-typecheck-and-load (V3166)
+ (do (nl 1) (shen-typecheck-and-evaluate V3166 (gensym A))))
+
+(defun shen-typetable (V3171)
+ (cond
+  ((and (cons? V3171) (and (= define (hd V3171)) (cons? (tl V3171))))
+   (let Sig (compile (function shen-<sig+rest>) (tl (tl V3171)) ())
+    (if (= Sig fail!)
+     (interror "~A lacks a proper signature.~%" (@p (hd (tl V3171)) ()))
+     (cons (cons (hd (tl V3171)) Sig) ()))))
+  (true ())))
+
+(defun shen-assumetype (V3172)
+ (cond ((cons? V3172) (declare (hd V3172) (tl V3172)))
+  (true (shen-sys-error shen-assumetype))))
+
+(defun shen-unwind-types (V3177 V3178)
+ (cond ((= () V3178) (simple-error (error-to-string V3177)))
+  ((and (cons? V3178) (cons? (hd V3178)))
+   (do (shen-remtype (hd (hd V3178))) (shen-unwind-types V3177 (tl V3178))))
+  (true (shen-sys-error shen-unwind-types))))
+
+(defun shen-remtype (V3179)
+ (do (set shen-*signedfuncs* (remove V3179 (value shen-*signedfuncs*))) V3179))
+
+(defun shen-<sig+rest> (V3180)
+ (let Result
+  (let Parse_<signature> (shen-<signature> V3180)
+   (if (not (= (fail) Parse_<signature>))
+    (let Parse_<any> (shen-<any> Parse_<signature>)
+     (if (not (= (fail) Parse_<any>))
+      (shen-reassemble (fst Parse_<any>) (snd Parse_<signature>)) (fail)))
+    (fail)))
+  (if (= Result (fail)) (fail) Result)))
+
+(defun dump (V3181 V3182)
+ (let Shen (read-file V3181)
+  (let KL (map (function shen-shen-out) Shen)
+   (let ObjectFile (cn V3181 (cn "." V3182))
+    (let Stream (open file ObjectFile out)
+     (let Dump (shen-dump-target Stream V3182 KL)
+      (let Close (close Stream) ObjectFile)))))))
+
+(defun shen-shen-out (V3183)
+ (cond
+  ((and (cons? V3183) (and (= define (hd V3183)) (cons? (tl V3183))))
+   (shen-shen->kl (hd (tl V3183)) (tl (tl V3183))))
+  (true V3183)))
+
+(defun shen-dump-target (V3192 V3193 V3194)
+ (cond ((= "kl" V3193) (shen-write-object-code-to-file V3192 V3194))
+  ((= "cl" V3193)
+   (shen-write-object-code-to-file V3192
+    (map (lambda X (shen-kl-to-lisp () X)) V3194)))
+  (true (interror "~A is not known as a platform~%" (@p V3193 ())))))
+
+(defun shen-write-object-code-to-file (V3195 V3196)
+ (map
+  (lambda X
+   (let String (intmake-string "~R~%~%" (@p X ())) (pr String V3195)))
+  V3196))
+
+(defun write-to-file (V3197 V3198)
+ (let AbsPath
+  (intmake-string "~A~A" (@p (value *home-directory*) (@p V3197 ())))
+  (let Stream (open file AbsPath out)
+   (let String (intmake-string "~S~%~%" (@p V3198 ()))
+    (let Write (pr String Stream) (let Close (close Stream) V3198))))))
+
